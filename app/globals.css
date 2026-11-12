@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+/* Theme switching is driven by data-theme on <html> (set before paint in layout.tsx) */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ───────────────────────── Tokens ───────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg: #0a0a12;
+  --surface: #12121c;
+  --surface-2: #1a1a28;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #f4f4f8;
+  --text-muted: #a1a1b5;
+  --text-subtle: #6b6b80;
+
+  --violet: #7c3aed;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --pink: #f472b6;
+  --success: #22c55e;
+  --danger: #f43f5e;
+
+  --gradient-brand: linear-gradient(135deg, #7c3aed 0%, #3b82f6 50%, #06b6d4 100%);
+  --gradient-text: linear-gradient(90deg, #a78bfa 0%, #60a5fa 50%, #22d3ee 100%);
+  --blob-opacity: 0.25;
+  --noise-opacity: 0.035;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #fafafc;
+  --surface: #ffffff;
+  --surface-2: #f1f1f6;
+  --border: rgba(10, 10, 18, 0.08);
+  --text: #0a0a12;
+  --text-muted: #4b4b5e;
+  --text-subtle: #8a8a9c;
+
+  --violet: #6d28d9;
+  --blue: #2563eb;
+  --cyan: #0891b2;
+
+  --gradient-text: linear-gradient(90deg, #6d28d9 0%, #2563eb 50%, #0891b2 100%);
+  --blob-opacity: 0.15;
+  --noise-opacity: 0.025;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+  --color-violet: var(--violet);
+  --color-blue: var(--blue);
+  --color-cyan: var(--cyan);
+  --color-pink: var(--pink);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+
+  --font-serif: var(--font-instrument-serif), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --text-display-xl: clamp(4.5rem, 12vw, 10rem);
+  --text-display-xl--line-height: 0.9;
+  --text-display-xl--letter-spacing: -0.03em;
+  --text-display-lg: clamp(2.75rem, 6vw, 5.5rem);
+  --text-display-lg--line-height: 1;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-md: clamp(2rem, 4vw, 3.5rem);
+  --text-display-md--line-height: 1.05;
+  --text-body-lg: 1.25rem;
+  --text-body-lg--line-height: 1.6;
+  --text-label: 0.75rem;
+  --text-label--letter-spacing: 0.12em;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ───────────────────────── Base ───────────────────────── */
+/* Background lives on <html> only — a body background would paint over the -z-10 gradient blobs. */
+html {
+  background: var(--bg);
+  transition: background-color 0.4s var(--ease-in-out);
+}
+
+body {
+  color: var(--text);
+  font-family: var(--font-sans);
+  line-height: 1.65;
+  transition: color 0.4s var(--ease-in-out);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--violet) 40%, transparent);
+}
+
+/* Lenis recommended styles */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+
+/* ───────────────────────── Utilities ───────────────────────── */
+@utility container-page {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: clamp(1.25rem, 5vw, 4rem);
+}
+
+@utility text-gradient {
+  background-image: var(--gradient-text);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+@utility label-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--text-label--letter-spacing);
+  text-transform: uppercase;
+}
+
+@utility glass {
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+}
+
+/* Infinite marquee: content is rendered twice, track slides by half its width */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@utility animate-marquee {
+  animation: marquee var(--marquee-duration, 60s) linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+/* Fine grain overlay so gradients don't band */
+@utility noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}

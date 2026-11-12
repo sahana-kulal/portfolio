@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600" role="img" aria-label="Woman in a hoodie typing on a laptop at a standing desk">
+  <!-- Desk legs & feet -->
+  <rect x="306" y="378" width="14" height="184" fill="#8A5A2B"/>
+  <rect x="490" y="378" width="14" height="184" fill="#8A5A2B"/>
+  <rect x="284" y="560" width="58" height="10" rx="5" fill="#6B4420"/>
+  <rect x="468" y="560" width="58" height="10" rx="5" fill="#6B4420"/>
+  <!-- Desk top -->
+  <rect x="250" y="358" width="310" height="20" rx="4" fill="#D19A5C"/>
+  <rect x="250" y="372" width="310" height="6" rx="3" fill="#B87E42"/>
+
+  <!-- Plant -->
+  <path d="M512 330 L536 330 L532 358 L516 358 Z" fill="#E4572E"/>
+  <ellipse cx="524" cy="318" rx="8" ry="20" fill="#4CAF7A" transform="rotate(-25 524 330)"/>
+  <ellipse cx="524" cy="316" rx="8" ry="22" fill="#3A9566"/>
+  <ellipse cx="524" cy="318" rx="8" ry="20" fill="#5CC48C" transform="rotate(25 524 330)"/>
+
+  <!-- Laptop -->
+  <polygon points="436,348 452,348 482,248 466,248" fill="#4B5563"/>
+  <polygon points="441,342 449,342 474,258 467,258" fill="#9CD3F5"/>
+  <rect x="332" y="346" width="122" height="12" rx="4" fill="#AEB8C4"/>
+
+  <!-- Back arm -->
+  <path d="M200 290 L246 338 L330 344" fill="none" stroke="#C95A48" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Legs -->
+  <rect x="174" y="425" width="24" height="132" rx="8" fill="#2F4A75"/>
+  <rect x="198" y="425" width="24" height="132" rx="8" fill="#3B5B8C"/>
+  <!-- Shoes -->
+  <path d="M170 557 H204 Q216 557 216 566 V568 H170 Z" fill="#F4F4F4"/>
+  <path d="M196 557 H230 Q242 557 242 566 V568 H196 Z" fill="#FFFFFF"/>
+
+  <!-- Hoodie body -->
+  <rect x="160" y="258" width="72" height="190" rx="30" fill="#E86F5B"/>
+  <rect x="160" y="425" width="72" height="23" rx="10" fill="#D85E4B"/>
+  <!-- Hood behind neck -->
+  <ellipse cx="190" cy="262" rx="36" ry="15" fill="#D85E4B"/>
+  <!-- Pocket -->
+  <path d="M176 390 H216 L210 420 H182 Z" fill="#D85E4B"/>
+
+  <!-- Hair back -->
+  <path d="M158 220 C150 170 196 160 232 182 L228 260 C190 268 160 260 158 220 Z" fill="#2B2230"/>
+  <!-- Head -->
+  <ellipse cx="208" cy="224" rx="30" ry="34" fill="#F2C2A0"/>
+  <!-- Fringe -->
+  <path d="M176 215 C176 180 222 170 240 200 C220 198 196 200 176 215 Z" fill="#2B2230"/>
+  <!-- Face -->
+  <circle cx="228" cy="224" r="3" fill="#2B2230"/>
+  <path d="M222 240 Q230 246 237 240" fill="none" stroke="#C97B63" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Front arm -->
+  <path d="M208 292 L258 346 L340 350" fill="none" stroke="#E86F5B" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="344" cy="348" r="10" fill="#F2C2A0"/>
+  <circle cx="332" cy="344" r="9" fill="#E8B48F"/>
+</svg>
