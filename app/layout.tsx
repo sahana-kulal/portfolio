@@ -25,9 +25,19 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sahana-kulal.vercel.app"),
   title: "Sahana Kulal — Application Engineer",
   description:
     "Application engineer at Ati Motors building and supporting real-time fleet management, teleoperation and monitoring software for autonomous mobile robots.",
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Sahana Kulal",
+    title: "Sahana Kulal — Application Engineer",
+    description:
+      "Application engineer at Ati Motors building real-time fleet management, teleoperation and monitoring software for autonomous mobile robots.",
+  },
+  twitter: { card: "summary_large_image" },
   // Tells the Dark Reader extension to leave this page alone: the site has its own dark theme,
   // and the extension's injected attributes cause React hydration errors.
   other: { "darkreader-lock": "true" },
