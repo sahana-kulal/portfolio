@@ -5,15 +5,14 @@ import { useEffect, useRef, useState } from "react";
 import type { projects as Projects } from "@/content/data";
 import { Chip } from "@/components/ui/Chip";
 import { AnalyticsVisual } from "@/components/visuals/AnalyticsVisual";
-import { FleetVisual } from "@/components/visuals/FleetVisual";
-import { MonitorVisual } from "@/components/visuals/MonitorVisual";
+import { FleetManagerDemo } from "@/components/demo/FleetManagerDemo";
 import { MtsVisual } from "@/components/visuals/MtsVisual";
 import { TeleopsVisual } from "@/components/visuals/TeleopsVisual";
 import { ease } from "@/lib/motion";
 
 type Project = (typeof Projects)[number];
 
-const VISUALS = { fleet: FleetVisual, teleops: TeleopsVisual, monitor: MonitorVisual, mts: MtsVisual, analytics: AnalyticsVisual };
+const VISUALS = { fleet: FleetManagerDemo, teleops: TeleopsVisual, mts: MtsVisual, analytics: AnalyticsVisual };
 const AUTOPLAY_MS = 3000;
 const TICK_MS = 250;
 
@@ -51,6 +50,8 @@ export function ProjectStory({ project, total }: { project: Project; total: numb
   };
 
   const Visual = VISUALS[project.id];
+  // The interactive demo needs more room than the animated mockups.
+  const wide = project.id === "fleet";
 
   return (
     <div
@@ -58,9 +59,10 @@ export function ProjectStory({ project, total }: { project: Project; total: numb
       className="relative flex items-center overflow-hidden py-12 lg:py-16"
       style={{ ["--accent" as string]: `var(--${project.color})` }}
     >
-      <div className="container-page grid items-center gap-6 lg:grid-cols-12 lg:gap-16">
+      <div className={`container-page grid items-center gap-6 lg:grid-cols-12 ${wide ? "lg:gap-8" : "lg:gap-16"}`}>
         {/* Text */}
-        <div className="order-2 lg:order-1 lg:col-span-5">
+        <div className={`order-2 lg:order-1 ${wide ? "lg:col-span-12 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10" : "lg:col-span-5"}`}>
+          <div className={wide ? "lg:col-span-5" : undefined}>
           <p className="label-mono flex items-center gap-3 text-subtle">
             <span className="whitespace-nowrap text-(--accent)">
               {project.index} / {String(total).padStart(2, "0")}
@@ -74,8 +76,10 @@ export function ProjectStory({ project, total }: { project: Project; total: numb
               <Chip key={s}>{s}</Chip>
             ))}
           </div>
+          </div>
 
-          <ol className="mt-5 lg:mt-10">
+          <div className={wide ? "lg:col-span-7" : undefined}>
+          <ol className={`mt-5 ${wide ? "lg:mt-0" : "lg:mt-10"}`}>
             {project.steps.map((s, i) => {
               const on = i === step;
               return (
@@ -121,10 +125,11 @@ export function ProjectStory({ project, total }: { project: Project; total: numb
               />
             ))}
           </div>
+          </div>
         </div>
 
         {/* Visual */}
-        <div className="order-1 lg:order-2 lg:col-span-7">
+        <div className={`order-1 lg:order-2 ${wide ? "lg:col-span-12" : "lg:col-span-7"}`}>
           <Visual step={step} />
         </div>
       </div>

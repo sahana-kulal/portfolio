@@ -80,7 +80,7 @@ export const experience = [
   },
 ];
 
-export type ProjectId = "fleet" | "teleops" | "monitor" | "mts" | "analytics";
+export type ProjectId = "fleet" | "teleops" | "mts" | "analytics";
 
 export const projects: {
   id: ProjectId;
@@ -95,7 +95,7 @@ export const projects: {
     id: "fleet",
     index: "01",
     title: "ATI Fleet Manager",
-    kicker: "Real-time Operator Dashboards",
+    kicker: "Live Demo · Operator Dashboards",
     color: "cyan",
     stack: ["React", "TypeScript", "WebSocket", "Chart.js"],
     steps: [
@@ -136,30 +136,8 @@ export const projects: {
     ],
   },
   {
-    id: "monitor",
-    index: "03",
-    title: "AMR Monitoring",
-    kicker: "Alert-driven Dashboard",
-    color: "violet",
-    stack: ["React", "TypeScript", "MUI", "Real-time"],
-    steps: [
-      {
-        title: "Live status cards",
-        body: "Real-time monitoring cards for each AMR, deployed across 30+ AMRs in 3 facilities.",
-      },
-      {
-        title: "Alerts rise to the top",
-        body: "AMRs with errors or warnings are sorted to the top automatically.",
-      },
-      {
-        title: "Rotating focus",
-        body: "When several alerts fire, the view rotates every 15 seconds so none gets missed.",
-      },
-    ],
-  },
-  {
     id: "mts",
-    index: "04",
+    index: "03",
     title: "Material Tracking",
     kicker: "Enterprise Frontend (MTS)",
     color: "cyan",
@@ -181,7 +159,7 @@ export const projects: {
   },
   {
     id: "analytics",
-    index: "05",
+    index: "04",
     title: "Fleet Analytics",
     kicker: "Grafana KPI Dashboards",
     color: "blue",

@@ -370,6 +370,63 @@ export function FleetManagerDemo() {
 
   /* ---------- screens ---------- */
 
+  const sherpaCard = (
+        <div className="rounded-lg bg-white p-3 text-xs dark:bg-zinc-900">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-semibold">{robot.id}</p>
+              <p className="text-slate-500 dark:text-slate-400">Last connected: {1 + (Math.floor(sim.tick / 25) % 2)} second{Math.floor(sim.tick / 25) % 2 ? "s" : ""} ago</p>
+            </div>
+            <span className="rounded border border-slate-300 dark:border-zinc-700 px-1.5 py-0.5 font-mono">{Math.round(robot.battery)}%</span>
+          </div>
+          <span className={`mt-2 inline-block rounded-full px-3 py-1 font-medium ${chip[robot.status]}`}>● {robot.status}</span>
+          <p className="mt-2 font-mono text-[10px] text-slate-500 dark:text-slate-400">
+            x {(robot.pos[0] / 10).toFixed(1)} m · y {(robot.pos[1] / 10).toFixed(1)} m ·{" "}
+            {robot.status === "En Route" ? (0.78 + (sim.tick % 7) * 0.01).toFixed(2) : "0.00"} m/s
+          </p>
+          <div className="mt-2 rounded border border-slate-300 dark:border-zinc-700 px-2 py-1.5 text-slate-600 dark:text-slate-300">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">Route</span>
+            <p className="truncate">{activeTrip ? stationLabel(activeTrip.stations) : "—"}</p>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <select
+              value={robot.mode}
+              onChange={(e) => patchRobot(robot.id, { mode: e.target.value as Robot["mode"] })}
+              className="rounded border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1"
+              aria-label="Mode"
+            >
+              <option>Fleet</option>
+              <option>Manual</option>
+            </select>
+            <label className="flex cursor-pointer items-center gap-2">
+              Enable for trips
+              <button
+                type="button" role="switch" aria-checked={robot.enabled}
+                onClick={() => patchRobot(robot.id, { enabled: !robot.enabled })}
+                className={`relative h-5 w-9 rounded-full transition-colors ${robot.enabled ? "bg-blue-600" : "bg-slate-300 dark:bg-zinc-600"}`}
+              >
+                <span className={`absolute top-0.5 size-4 rounded-full bg-white dark:bg-zinc-900 transition-all ${robot.enabled ? "left-[18px]" : "left-0.5"}`} />
+              </button>
+            </label>
+          </div>
+          {robot.status === "E-Stopped" ? (
+            <button type="button" onClick={() => patchRobot(robot.id, { status: robot.tripId !== null ? "En Route" : "Idle" })}
+              className="mt-2 w-full cursor-pointer rounded bg-blue-600 py-2 font-medium text-white">
+              Recover
+            </button>
+          ) : (
+            <button type="button" onClick={() => patchRobot(robot.id, { status: "E-Stopped" })}
+              className="mt-2 w-full cursor-pointer rounded bg-red-600 py-2 font-medium text-white hover:bg-red-700">
+              ■ Emergency Stop
+            </button>
+          )}
+          <button type="button" disabled={robot.status !== "Idle"} onClick={() => book(["parking"], { want: robot.id })}
+            className="mt-2 w-full cursor-pointer rounded border border-slate-300 dark:border-zinc-700 py-1.5 font-medium disabled:cursor-not-allowed disabled:opacity-40">
+            Send to parking
+          </button>
+        </div>
+  );
+
   const live = (
     <div className="flex h-full">
       <div className="relative min-w-0 flex-1 overflow-hidden bg-[var(--mp-bg)]">
@@ -463,64 +520,12 @@ export function FleetManagerDemo() {
         </div>
 
         {/* Selected Sherpa card */}
-        <div className="absolute bottom-3 left-3 w-60 rounded-lg bg-white dark:bg-zinc-900 p-3 text-xs shadow-lg sm:w-72">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-semibold">{robot.id}</p>
-              <p className="text-slate-500 dark:text-slate-400">Last connected: {1 + (Math.floor(sim.tick / 25) % 2)} second{Math.floor(sim.tick / 25) % 2 ? "s" : ""} ago</p>
-            </div>
-            <span className="rounded border border-slate-300 dark:border-zinc-700 px-1.5 py-0.5 font-mono">{Math.round(robot.battery)}%</span>
-          </div>
-          <span className={`mt-2 inline-block rounded-full px-3 py-1 font-medium ${chip[robot.status]}`}>● {robot.status}</span>
-          <p className="mt-2 font-mono text-[10px] text-slate-500 dark:text-slate-400">
-            x {(robot.pos[0] / 10).toFixed(1)} m · y {(robot.pos[1] / 10).toFixed(1)} m ·{" "}
-            {robot.status === "En Route" ? (0.78 + (sim.tick % 7) * 0.01).toFixed(2) : "0.00"} m/s
-          </p>
-          <div className="mt-2 rounded border border-slate-300 dark:border-zinc-700 px-2 py-1.5 text-slate-600 dark:text-slate-300">
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">Route</span>
-            <p className="truncate">{activeTrip ? stationLabel(activeTrip.stations) : "—"}</p>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <select
-              value={robot.mode}
-              onChange={(e) => patchRobot(robot.id, { mode: e.target.value as Robot["mode"] })}
-              className="rounded border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1"
-              aria-label="Mode"
-            >
-              <option>Fleet</option>
-              <option>Manual</option>
-            </select>
-            <label className="flex cursor-pointer items-center gap-2">
-              Enable for trips
-              <button
-                type="button" role="switch" aria-checked={robot.enabled}
-                onClick={() => patchRobot(robot.id, { enabled: !robot.enabled })}
-                className={`relative h-5 w-9 rounded-full transition-colors ${robot.enabled ? "bg-blue-600" : "bg-slate-300 dark:bg-zinc-600"}`}
-              >
-                <span className={`absolute top-0.5 size-4 rounded-full bg-white dark:bg-zinc-900 transition-all ${robot.enabled ? "left-[18px]" : "left-0.5"}`} />
-              </button>
-            </label>
-          </div>
-          {robot.status === "E-Stopped" ? (
-            <button type="button" onClick={() => patchRobot(robot.id, { status: robot.tripId !== null ? "En Route" : "Idle" })}
-              className="mt-2 w-full cursor-pointer rounded bg-blue-600 py-2 font-medium text-white">
-              Recover
-            </button>
-          ) : (
-            <button type="button" onClick={() => patchRobot(robot.id, { status: "E-Stopped" })}
-              className="mt-2 w-full cursor-pointer rounded bg-red-600 py-2 font-medium text-white hover:bg-red-700">
-              ■ Emergency Stop
-            </button>
-          )}
-          <button type="button" disabled={robot.status !== "Idle"} onClick={() => book(["parking"], { want: robot.id })}
-            className="mt-2 w-full cursor-pointer rounded border border-slate-300 dark:border-zinc-700 py-1.5 font-medium disabled:cursor-not-allowed disabled:opacity-40">
-            Send to parking
-          </button>
-        </div>
+        {/* Selected Sherpa card: overlays the map only on small screens; on md+ it docks in the side panel */}
+        <div className="absolute bottom-3 left-3 w-60 rounded-lg shadow-lg md:hidden">{sherpaCard}</div>
       </div>
 
       {/* Right panel */}
-      <div className="hidden w-52 shrink-0 flex-col border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 md:flex">
+      <div className="hidden w-80 shrink-0 flex-col border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 md:flex">
         <div className="grid grid-cols-2 text-xs">
           {(["Sherpas", "Stations"] as const).map((p) => (
             <button key={p} type="button" onClick={() => setPanel(p)}
@@ -545,6 +550,7 @@ export function FleetManagerDemo() {
                 <li key={n} className="rounded-md bg-slate-50 dark:bg-zinc-950 px-2 py-2">{n}</li>
               ))}
         </ul>
+        <div className="hidden border-t border-slate-200 p-3 dark:border-zinc-800 md:block">{sherpaCard}</div>
       </div>
     </div>
   );
