@@ -276,6 +276,34 @@ const btn = "cursor-pointer rounded px-3 py-1.5 text-xs font-medium uppercase tr
 const btnPrimary = `${btn} bg-blue-600 text-white hover:bg-blue-700`;
 const btnOutline = `${btn} border border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950`;
 
+/** Flat front-view tug for the login picture. Origin is the bottom centre, on the ground. */
+function LoginTug({ x, y, s, body, edge, canopy }: { x: number; y: number; s: number; body: string; edge: string; canopy?: boolean }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <ellipse cx="0" cy="4" rx="66" ry="8" fill="#0f172a" opacity=".16" />
+      {canopy && (
+        <g>
+          <rect x="-58" y="-196" width="5" height="160" fill="#475569" />
+          <rect x="53" y="-196" width="5" height="160" fill="#475569" />
+          <rect x="-66" y="-206" width="132" height="14" rx="4" fill="#64748b" />
+          <circle cx="-30" cy="-196" r="3" fill="#fde68a" />
+          <circle cx="30" cy="-196" r="3" fill="#fde68a" />
+        </g>
+      )}
+      <rect x="-56" y="-40" width="22" height="40" rx="9" fill="#475569" />
+      <rect x="34" y="-40" width="22" height="40" rx="9" fill="#475569" />
+      <polygon points="-50,-8 50,-8 46,-92 30,-118 -30,-118 -46,-92" fill={body} stroke={edge} strokeWidth="2" strokeLinejoin="round" />
+      <polygon points="-48,-10 -32,-10 -20,-90 -36,-90" fill="#111827" opacity=".85" />
+      <rect x="-30" y="-92" width="60" height="70" rx="10" fill="#111827" />
+      <rect x="-14" y="-84" width="28" height="14" rx="3" fill="#374151" />
+      <circle cx="-16" cy="-40" r="6" fill="#fde68a" />
+      <circle cx="16" cy="-40" r="6" fill="#fde68a" />
+      <rect x="-6" y="-134" width="12" height="16" rx="3" fill="#f59e0b" />
+      <ellipse cx="0" cy="-134" rx="6" ry="4" fill="#fbbf24" />
+    </g>
+  );
+}
+
 export function FleetManagerDemo() {
   const [tab, setTab] = useState<Tab>("live");
   const [sim, setSim] = useState<Sim>(seed);
@@ -295,6 +323,11 @@ export function FleetManagerDemo() {
   const [tripTab, setTripTab] = useState<"Active" | "Scheduled" | "Completed">("Active");
   const [seq, setSeq] = useState<string[]>([]);
   const [toast, setToast] = useState("");
+  const [signedIn, setSignedIn] = useState(true);
+  const [menu, setMenu] = useState<"bell" | "account" | null>(null);
+  const [user, setUser] = useState("demo.user");
+  const [pw, setPw] = useState("demo1234");
+  const [showPw, setShowPw] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
 
@@ -317,7 +350,6 @@ export function FleetManagerDemo() {
   }, [toast]);
 
   const robot = sim.robots.find((r) => r.id === selected) ?? sim.robots[0];
-  const anyStopped = sim.robots.some((r) => r.status === "E-Stopped");
 
   const patchRobot = (id: string, p: Partial<Robot>) =>
     setSim((s) => ({ ...s, robots: s.robots.map((r) => (r.id === id ? { ...r, ...p } : r)) }));
@@ -337,19 +369,6 @@ export function FleetManagerDemo() {
     setToast(opts.schedule ? "Trip scheduled — starts in 10 s" : "Trip booked");
   };
 
-  const emergency = () => {
-    if (anyStopped) {
-      setSim((s) => ({
-        ...s,
-        robots: s.robots.map((r) => (r.status === "E-Stopped" ? { ...r, status: r.tripId !== null ? "En Route" : "Idle" } : r)),
-      }));
-      setToast("Fleet recovered");
-    } else {
-      setSim((s) => ({ ...s, robots: s.robots.map((r) => ({ ...r, status: "E-Stopped" })) }));
-      setToast("Emergency stop sent to all Sherpas");
-    }
-  };
-
   const cancel = (id: number) =>
     setSim((s) => ({
       ...s,
@@ -359,6 +378,17 @@ export function FleetManagerDemo() {
 
   const activeTrip = sim.trips.find((t) => t.id === robot.tripId && t.status === "En Route");
   const q = query.trim().toLowerCase();
+
+  // Bell: alerts (stopped / low battery) plus a few recent completions.
+  const alertNotes = sim.robots.flatMap((r) => [
+    ...(r.status === "E-Stopped" ? [{ id: `${r.id}-stop`, text: `${r.id} emergency stopped`, tone: "bg-red-500" }] : []),
+    ...(r.battery < 30 ? [{ id: `${r.id}-bat`, text: `${r.id} battery low (${Math.round(r.battery)}%)`, tone: "bg-amber-400" }] : []),
+  ]);
+  const doneNotes = sim.trips
+    .filter((t) => t.status === "Completed")
+    .slice(0, 3)
+    .map((t) => ({ id: `trip-${t.id}`, text: `Trip #${t.id} completed`, tone: "bg-teal-500" }));
+  const notes = [...alertNotes, ...doneNotes];
 
   const trips = sim.trips.filter((t) =>
     tripTab === "Active"
@@ -371,7 +401,7 @@ export function FleetManagerDemo() {
   /* ---------- screens ---------- */
 
   const sherpaCard = (
-        <div className="rounded-lg bg-white p-3 text-xs dark:bg-zinc-900">
+        <div className="rounded-lg bg-white p-2.5 text-xs dark:bg-zinc-900">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-semibold">{robot.id}</p>
@@ -379,16 +409,18 @@ export function FleetManagerDemo() {
             </div>
             <span className="rounded border border-slate-300 dark:border-zinc-700 px-1.5 py-0.5 font-mono">{Math.round(robot.battery)}%</span>
           </div>
-          <span className={`mt-2 inline-block rounded-full px-3 py-1 font-medium ${chip[robot.status]}`}>● {robot.status}</span>
-          <p className="mt-2 font-mono text-[10px] text-slate-500 dark:text-slate-400">
-            x {(robot.pos[0] / 10).toFixed(1)} m · y {(robot.pos[1] / 10).toFixed(1)} m ·{" "}
-            {robot.status === "En Route" ? (0.78 + (sim.tick % 7) * 0.01).toFixed(2) : "0.00"} m/s
-          </p>
-          <div className="mt-2 rounded border border-slate-300 dark:border-zinc-700 px-2 py-1.5 text-slate-600 dark:text-slate-300">
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            <span className={`shrink-0 rounded-full px-3 py-1 font-medium ${chip[robot.status]}`}>● {robot.status}</span>
+            <p className="truncate font-mono text-[10px] text-slate-500 dark:text-slate-400">
+              x {(robot.pos[0] / 10).toFixed(1)} · y {(robot.pos[1] / 10).toFixed(1)} m ·{" "}
+              {robot.status === "En Route" ? (0.78 + (sim.tick % 7) * 0.01).toFixed(2) : "0.00"} m/s
+            </p>
+          </div>
+          <div className="mt-1.5 rounded border border-slate-300 dark:border-zinc-700 px-2 py-1 text-slate-600 dark:text-slate-300">
             <span className="text-[10px] text-slate-400 dark:text-slate-500">Route</span>
             <p className="truncate">{activeTrip ? stationLabel(activeTrip.stations) : "—"}</p>
           </div>
-          <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="mt-1.5 flex items-center justify-between gap-2">
             <select
               value={robot.mode}
               onChange={(e) => patchRobot(robot.id, { mode: e.target.value as Robot["mode"] })}
@@ -411,17 +443,17 @@ export function FleetManagerDemo() {
           </div>
           {robot.status === "E-Stopped" ? (
             <button type="button" onClick={() => patchRobot(robot.id, { status: robot.tripId !== null ? "En Route" : "Idle" })}
-              className="mt-2 w-full cursor-pointer rounded bg-blue-600 py-2 font-medium text-white">
+              className="mt-1.5 w-full cursor-pointer rounded border border-blue-600 py-1.5 font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950">
               Recover
             </button>
           ) : (
             <button type="button" onClick={() => patchRobot(robot.id, { status: "E-Stopped" })}
-              className="mt-2 w-full cursor-pointer rounded bg-red-600 py-2 font-medium text-white hover:bg-red-700">
+              className="mt-1.5 w-full cursor-pointer rounded border border-red-500 py-1.5 font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950">
               ■ Emergency Stop
             </button>
           )}
           <button type="button" disabled={robot.status !== "Idle"} onClick={() => book(["parking"], { want: robot.id })}
-            className="mt-2 w-full cursor-pointer rounded border border-slate-300 dark:border-zinc-700 py-1.5 font-medium disabled:cursor-not-allowed disabled:opacity-40">
+            className="mt-1.5 w-full cursor-pointer rounded border border-slate-300 dark:border-zinc-700 py-1 font-medium disabled:cursor-not-allowed disabled:opacity-40">
             Send to parking
           </button>
         </div>
@@ -525,7 +557,8 @@ export function FleetManagerDemo() {
       </div>
 
       {/* Right panel */}
-      <div className="hidden w-80 shrink-0 flex-col border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 md:flex">
+      <div className="hidden w-80 shrink-0 flex-col overflow-hidden border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 md:flex">
+        <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900">
         <div className="grid grid-cols-2 text-xs">
           {(["Sherpas", "Stations"] as const).map((p) => (
             <button key={p} type="button" onClick={() => setPanel(p)}
@@ -535,8 +568,9 @@ export function FleetManagerDemo() {
           ))}
         </div>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search…"
-          className="border-b border-slate-200 bg-transparent px-3 py-2 text-xs outline-none dark:border-zinc-800" />
-        <ul className="flex-1 space-y-2 overflow-auto p-3 text-center text-xs">
+          className="w-full border-b border-slate-200 bg-transparent px-3 py-2 text-xs outline-none dark:border-zinc-800" />
+        </div>
+        <ul className="min-h-0 flex-1 space-y-2 overflow-auto p-3 text-center text-xs">
           {panel === "Sherpas"
             ? sim.robots.filter((r) => r.id.includes(q)).map((r) => (
                 <li key={r.id}>
@@ -738,14 +772,57 @@ export function FleetManagerDemo() {
         <header className="flex items-center gap-3 border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2.5">
           <span className="font-serif text-xl leading-none">Fleet Manager</span>
           <span className="hidden rounded border border-slate-300 dark:border-zinc-700 px-3 py-1.5 text-xs sm:block">demo_site ▾</span>
-          <button type="button" onClick={emergency}
-            className={`ml-auto cursor-pointer rounded border px-3 py-1.5 text-xs font-medium ${anyStopped ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-red-500 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"}`}>
-            {anyStopped ? "Recover all" : "Emergency Stop"}
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="relative">
+              <button type="button" onClick={() => setMenu((m) => (m === "bell" ? null : "bell"))} aria-label="Notifications" aria-expanded={menu === "bell"}
+                className="relative grid size-9 cursor-pointer place-items-center rounded-full text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-zinc-800">
+                <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" />
+                </svg>
+                {alertNotes.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-red-600 text-[10px] font-semibold text-white">
+                    {alertNotes.length}
+                  </span>
+                )}
+              </button>
+              {menu === "bell" && (
+                <div className="absolute top-11 right-0 z-30 w-64 rounded-lg border border-slate-200 bg-white p-1 text-xs shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+                  <p className="px-3 py-2 font-medium">Notifications</p>
+                  {notes.length === 0 && <p className="px-3 pb-3 text-slate-500 dark:text-slate-400">Nothing new.</p>}
+                  <ul>
+                    {notes.map((n) => (
+                      <li key={n.id} className="flex items-center gap-2 rounded px-3 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800">
+                        <span className={`size-2 shrink-0 rounded-full ${n.tone}`} />
+                        {n.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <button type="button" onClick={() => setMenu((m) => (m === "account" ? null : "account"))} aria-label="Account" aria-expanded={menu === "account"}
+                className="grid size-9 cursor-pointer place-items-center rounded-full border-2 border-slate-400 text-sm font-medium text-slate-500 hover:border-slate-600 hover:text-slate-700 dark:border-zinc-600 dark:text-slate-400 dark:hover:border-zinc-400">
+                A
+              </button>
+              {menu === "account" && (
+                <div className="absolute top-11 right-0 z-30 w-48 rounded-lg border border-slate-200 bg-white p-1 text-xs shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
+                  <p className="px-3 py-2 text-slate-500 dark:text-slate-400">Signed in as demo.user</p>
+                  <button type="button"
+                    onClick={() => { setSignedIn(false); setMenu(null); }}
+                    className="w-full cursor-pointer rounded px-3 py-2 text-left font-medium hover:bg-slate-100 dark:hover:bg-zinc-800">
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </header>
 
         <main className="min-h-0 flex-1 overflow-auto">{screens[tab]}</main>
 
+        {signedIn && (
         <nav className="mx-auto mb-3 flex w-[min(92%,34rem)] justify-between rounded-lg bg-white dark:bg-zinc-900 px-2 py-1.5 shadow-lg">
           {NAV.map((n) => {
             const on = tab === n.tab || (tab === "build" && n.tab === "book");
@@ -758,12 +835,75 @@ export function FleetManagerDemo() {
             );
           })}
         </nav>
+        )}
+
+        {/* Login page (shown after logging out) */}
+        {!signedIn && (
+          <div className="absolute inset-0 z-40 flex bg-white dark:bg-zinc-950">
+            <div className="relative hidden flex-1 overflow-hidden bg-slate-100 dark:bg-zinc-900 md:block">
+              <svg viewBox="0 0 600 520" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
+                {/* Teal parallelogram pattern, growing toward the top-right corner */}
+                {Array.from({ length: 6 }, (_, row) =>
+                  Array.from({ length: 9 }, (_, col) => {
+                    const size = 5 + col * 2.6 + (5 - row) * 0.6;
+                    const x = 250 + col * 40;
+                    const y = 12 + row * 42;
+                    const sk = size * 0.5;
+                    return (
+                      <polygon key={`${row}-${col}`} fill="#0d9488" opacity={0.35 + col * 0.07}
+                        points={`${x + sk},${y} ${x + size + sk},${y} ${x + size},${y + size * 1.1} ${x},${y + size * 1.1}`} />
+                    );
+                  }),
+                )}
+                {/* Three tugs, front view, sitting on the floor */}
+                <LoginTug x={125} y={450} s={1} body="#facc15" edge="#ca8a04" />
+                <LoginTug x={285} y={450} s={0.92} body="#f3f4f6" edge="#cbd5e1" canopy />
+                <LoginTug x={455} y={450} s={1.22} body="#facc15" edge="#ca8a04" />
+              </svg>
+              <p className="absolute bottom-6 left-7 font-serif text-3xl text-slate-800 dark:text-slate-100">Fleet Manager</p>
+            </div>
+
+            <form
+              className="flex w-full flex-col justify-center px-8 md:w-[44%] md:px-12"
+              onSubmit={(e) => { e.preventDefault(); setSignedIn(true); setToast("Logged in"); }}
+            >
+              <h4 className="text-center text-2xl font-bold tracking-tight">
+                <span className="text-red-600">FM</span> DASHBOARD
+              </h4>
+              <p className="mt-6 text-center text-lg font-semibold">Sign in</p>
+
+              <label className="mt-4 block text-xs font-semibold">Username
+                <input value={user} onChange={(e) => setUser(e.target.value)} autoComplete="off"
+                  className="mt-1.5 block w-full rounded-md border border-slate-300 bg-transparent px-3 py-3 text-sm font-normal outline-none focus:border-blue-500 dark:border-zinc-700" />
+              </label>
+              <label className="mt-4 block text-xs font-semibold">Password
+                <span className="relative mt-1.5 block">
+                  <input value={pw} onChange={(e) => setPw(e.target.value)} type={showPw ? "text" : "password"} autoComplete="off"
+                    className="block w-full rounded-md border border-slate-300 bg-transparent px-3 py-3 pr-11 text-sm font-normal outline-none focus:border-blue-500 dark:border-zinc-700" />
+                  <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? "Hide password" : "Show password"}
+                    className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer text-slate-500">
+                    <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+                      <circle cx="12" cy="12" r="3" />
+                      {!showPw && <path d="M3 3l18 18" />}
+                    </svg>
+                  </button>
+                </span>
+              </label>
+
+              <button type="submit" className="mt-7 w-full cursor-pointer rounded-md bg-blue-500 py-2.5 text-sm font-medium text-white shadow hover:bg-blue-600">
+                Log In
+              </button>
+              <p className="mt-10 text-center text-[10px] text-slate-500 dark:text-slate-400">Demo only: any login works · simulated data · © 2026</p>
+            </form>
+          </div>
+        )}
 
         <AnimatePresence>
           {toast && (
             <motion.div
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-              className="pointer-events-none absolute top-16 left-1/2 z-20 -translate-x-1/2 rounded-full bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-4 py-2 text-xs text-white shadow-lg"
+              className="pointer-events-none absolute top-16 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 dark:bg-slate-100 dark:text-slate-900 px-4 py-2 text-xs text-white shadow-lg"
             >
               {toast}
             </motion.div>

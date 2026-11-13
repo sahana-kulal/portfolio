@@ -4,18 +4,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Badge, Frame } from "./Frame";
 import { LidarCanvas } from "./LidarCanvas";
-import { Tug } from "./Tug";
+import { TeleMap } from "./TeleMap";
 
-// Illustrative layout (not a real facility).
-const LOOP = "M40,40 H260 V290 H40 Z";
-const RACKS = [
-  { x: 62, y: 66, cols: 6, rows: 4 },
-  { x: 62, y: 160, cols: 6, rows: 4 },
-  { x: 62, y: 232, cols: 6, rows: 3 },
-  { x: 158, y: 66, cols: 6, rows: 4 },
-  { x: 158, y: 160, cols: 6, rows: 4 },
-  { x: 158, y: 232, cols: 6, rows: 3 },
-];
 // Camera feed objects drifting past as the tug drives forward (far -> near).
 const LEFT = { x: [84, -34], y: [48, 22], w: [8, 52], h: [14, 88] };
 const RIGHT = { x: [108, 182], y: [48, 22], w: [8, 52], h: [14, 88] };
@@ -33,6 +23,9 @@ export function TeleopsVisual({ step }: { step: number }) {
   const lowLatency = step >= 1;
   const lidar = step >= 2;
 
+  // The map tells the other panels when there is an obstacle ahead.
+  const [obstacle, setObstacle] = useState(false);
+
   // Hovers around 100 ms once the stream is up.
   const [live, setLive] = useState(100);
   useEffect(() => {
@@ -46,43 +39,7 @@ export function TeleopsVisual({ step }: { step: number }) {
       <div className="absolute inset-0 grid grid-cols-[1.7fr_1fr] gap-2.5 p-3 sm:gap-3 sm:p-4">
         {/* Map with the tug */}
         <div className="relative min-h-0 overflow-hidden rounded-md border border-border bg-surface-2/60">
-          <svg viewBox="0 0 300 330" preserveAspectRatio="xMidYMid meet" className="absolute inset-0 size-full">
-            <rect x="20" y="20" width="260" height="290" rx="3" fill="var(--surface)" stroke="var(--border)" strokeWidth="2" />
-            {RACKS.map((r, i) =>
-              Array.from({ length: r.cols * r.rows }, (_, k) => (
-                <rect key={`${i}-${k}`} x={r.x + (k % r.cols) * 12} y={r.y + Math.floor(k / r.cols) * 13} width="10" height="11" rx="1.5" fill="var(--border)" fillOpacity=".35" stroke="var(--border)" />
-              )),
-            )}
-            <path d="M40,141 H260 M150,40 V290" fill="none" stroke="var(--border)" strokeWidth="3" />
-            <path d={LOOP} fill="none" stroke="var(--text-subtle)" strokeOpacity=".7" strokeWidth="4" strokeLinejoin="round" />
-            {/* Parked fleet */}
-            {[[75, 304], [105, 304]].map(([x, y]) => (
-              <g key={x} transform={`translate(${x} ${y}) scale(0.5)`}>
-                <Tug color="#60a5fa" cart={false} />
-              </g>
-            ))}
-            {/* Tele-operated tug: scan cone + ring follow it around the loop */}
-            <motion.g
-              style={{ offsetPath: `path("${LOOP}")`, offsetRotate: "auto" }}
-              animate={{ offsetDistance: ["0%", "100%"] }}
-              transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-            >
-              <motion.path
-                d="M10,0 L74,-30 A80,80 0 0 1 74,30 Z"
-                fill="#14b8a6"
-                animate={{ opacity: [0.28, 0.08, 0.28] }}
-                transition={{ duration: 1.2, repeat: Infinity }}
-              />
-              <motion.circle
-                r="14" fill="none" stroke="#14b8a6" strokeWidth="2"
-                animate={{ r: [12, 30], opacity: [0.8, 0] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
-              />
-              <g transform="scale(0.75)">
-                <Tug color="#facc15" cart={false} />
-              </g>
-            </motion.g>
-          </svg>
+          <TeleMap onAlert={setObstacle} />
 
           <div className="absolute top-2 left-2 flex gap-1.5">
             <span className="rounded border border-border bg-surface px-2 py-1 font-mono text-[9px] text-muted sm:text-[10px]">Current</span>
@@ -104,7 +61,7 @@ export function TeleopsVisual({ step }: { step: number }) {
           <div className="flex min-h-0 flex-1 flex-col gap-1">
             <Chip>Lidar Feed</Chip>
             <div className="relative min-h-0 flex-1 overflow-hidden rounded-md border border-border bg-[#050510]">
-              <LidarCanvas detect={lidar} />
+              <LidarCanvas detect={lidar} alert={obstacle} />
               <span className="absolute top-1 left-1 flex items-center gap-1 rounded-full bg-bg/70 px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px]">
                 <span className="size-1.5 animate-pulse rounded-full bg-success" /> {lidar ? "DETECTING" : "SCANNING"}
               </span>
@@ -142,12 +99,23 @@ export function TeleopsVisual({ step }: { step: number }) {
                     </g>
                   ))}
                 </motion.g>
+                {obstacle && (
+                  <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+                    <rect x="86" y="66" width="28" height="20" rx="2" fill="#f59e0b" stroke="#111827" />
+                    <path d="M86,80 L98,66 M94,86 L108,72 M104,86 L114,76" stroke="#111827" strokeWidth="2.4" />
+                  </motion.g>
+                )}
                 <motion.path d="M70 48v-8h8M130 48v-8h-8M70 72v8h8M130 72v8h-8" stroke="#fff" strokeWidth="1.2" fill="none"
                   animate={{ opacity: [0.9, 0.4, 0.9] }} transition={{ duration: 1.4, repeat: Infinity }} />
               </svg>
               <span className="absolute top-1 left-1 flex items-center gap-1 rounded-full bg-bg/70 px-1.5 py-0.5 font-mono text-[8px] sm:text-[9px]">
                 <span className="size-1.5 animate-pulse rounded-full bg-danger" /> LIVE · WebRTC
               </span>
+              {obstacle && (
+                <span className="absolute top-1 right-1 rounded-full bg-red-500/80 px-1.5 py-0.5 font-mono text-[8px] text-white sm:text-[9px]">
+                  OBSTACLE AHEAD
+                </span>
+              )}
               <span className="absolute right-1 bottom-1 rounded bg-bg/80 px-1.5 py-0.5 font-mono text-[9px] tabular-nums sm:text-[10px]">
                 <span className={lowLatency ? "text-success" : "text-subtle"}>{lowLatency ? live : "—"}</span> ms
               </span>

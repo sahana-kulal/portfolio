@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 type Rect = { x: number; y: number; w: number; h: number };
 
 const RANGE = 9; // metres
+const OBSTACLE: Rect = { x: -0.6, y: 4.4, w: 1.2, h: 1.1 }; // appears dead ahead when the map reports an obstacle
 const SWEEP_DEG_PER_MS = 0.3; // one revolution ≈ 1.2 s
 const BEAM_STEP = 1.5; // degrees between rays
 const FADE_MS = 1400;
@@ -39,12 +40,14 @@ function rayCircle(dx: number, dy: number, cx: number, cy: number, r: number) {
  * ahead of the robot; hits fade out like a live viewer. With `detect`, the person gets a
  * detection box and a distance readout. Illustrative scene, not real data.
  */
-export function LidarCanvas({ detect }: { detect: boolean }) {
+export function LidarCanvas({ detect, alert = false }: { detect: boolean; alert?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const detectRef = useRef(detect);
+  const alertRef = useRef(alert);
   useEffect(() => {
     detectRef.current = detect;
-  }, [detect]);
+    alertRef.current = alert;
+  }, [detect, alert]);
 
   useEffect(() => {
     const cv = ref.current;
@@ -71,6 +74,7 @@ export function LidarCanvas({ detect }: { detect: boolean }) {
     let last = performance.now();
     let travel = 0;
     let personHit = -1e9;
+    let obsHit = -1e9;
     let raf = 0;
 
     const frame = (now: number) => {
@@ -100,6 +104,8 @@ export function LidarCanvas({ detect }: { detect: boolean }) {
         for (const r of rects) best = Math.min(best, rayRect(dx, dy, r));
         const tp = rayCircle(dx, dy, px, py, 0.4);
         if (tp < best) { best = tp; person = true; }
+        const to = alertRef.current ? rayRect(dx, dy, OBSTACLE) : Infinity;
+        if (to < best) { best = to; person = true; obsHit = now; }
         if (best < RANGE) {
           pts.push({ x: dx * best, y: dy * best, t: now, hue: (best / RANGE) * 270, person });
           if (person) personHit = now;
@@ -151,6 +157,18 @@ export function LidarCanvas({ detect }: { detect: boolean }) {
         ctx.fillStyle = "#ef4444";
         ctx.font = "10px ui-monospace, monospace";
         ctx.fillText(`Person · ${Math.hypot(px, py).toFixed(1)} m`, Math.min(bx + half + 4, w - 78), by - half - 3);
+      }
+
+      if (alertRef.current && now - obsHit < 900) {
+        const bx = rx;
+        const by = ry - (OBSTACLE.y + OBSTACLE.h / 2) * sc;
+        const half = 0.95 * sc;
+        ctx.strokeStyle = "#f59e0b";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(bx - half, by - half, half * 2, half * 2);
+        ctx.fillStyle = "#f59e0b";
+        ctx.font = "10px ui-monospace, monospace";
+        ctx.fillText(`Obstacle · ${OBSTACLE.y.toFixed(1)} m`, Math.min(bx + half + 4, w - 84), by - half - 3);
       }
 
       // Robot.
